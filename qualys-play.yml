@@ -1,0 +1,63 @@
+- hosts: localhost
+  vars:
+    ##set to 'True' if you want to see the IP and DNS list after edit    
+    Read_after_write: False
+
+    ##set QUALYS_TOKEN as "Bearer" token string
+    ##Using Chrome del tools console:
+    ## > encodedData = "Basic " + window.btoa('YOUR_USERNAME:YOUR_PASSWORD')
+
+    QUALYS_TOKEN: 'Basic xxxxxxxxxxxxxxxx'
+    
+    ##enable below if would like to read frm ENV 
+    #QUALYS_TOKEN: lookup('env', 'QUALYS_BASE64')
+    
+    ##Qualys Asset ID
+    QUALYS_ASSET_ID: "xxxxxxxxxxx"
+
+    ##QUALYS API URL. Check with your account and update below
+    QUALYS_API_URL: "https://qualysapi.qg3.apps.qualys.com/api/2.0"
+
+  gather_facts: False
+  tasks:
+    - name: Add IP/DNS
+      add_DNS_IP:  
+        ##Note, if the entry already exists, this module will overwrite it, thereby always \
+        ## returning changes status TRUE. Will be expanded in future.
+        ##single URL or multiple URLS from a file. Ignores list below. This feature is not implemented yet. Feel free to take it for a spin                
+        Read_from_file: False
+
+        #Switch to run or skip this module. Set as True to make changes
+        edit: True
+        ##False above expects list
+        ##Comma seperated URL/IP list as a string.
+        DNS: ['www.test.com,www2.testmyurl.com']
+        IP: ['1.1.1.1,10.0.0.0/8,172.16.10.1-172.17.10.255']
+        
+	Authorization: "{{ QUALYS_TOKEN }}"
+        QUALYS_API_URL: "{{ QUALYS_API_URL }}"
+        QUALYS_ASSET_ID: "{{ QUALYS_ASSET_ID }}"
+        
+      register: result
+      when: QUALYS_TOKEN and QUALYS_ASSET_ID is defined
+    - debug: var=result 
+    
+    - name: Get Host Asset group info
+    
+      get_Host_Asset:
+                 
+        Authorization: "{{ QUALYS_TOKEN }}"
+        QUALYS_API_URL: "{{ QUALYS_API_URL }}"
+        QUALYS_ASSET_ID: "{{ QUALYS_ASSET_ID }}"
+        #Display values DNS, IP, bothfull, bothshort. Option Both prints full list of DNS and IP
+        DNS_or_IP: bothfull
+        #Short print, when using DNS or IP options. 
+
+        ##if DNS_or_IP==both, short print options below are ignored
+        ##If TRUE, prints full list. False-prints count
+        print_full_DNS_list: True
+        print_full_IP_list: True       
+      
+      when: Read_after_write|bool and (QUALYS_TOKEN and QUALYS_ASSET_ID is defined)
+      register: result
+    - debug: var=result
